@@ -1,0 +1,24 @@
+#######################################
+# Syntax Coloring Map 24c02
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+begin	         	KEYWORD2
+EEPROMic		KEYWORD2
+readData		KEYWORD2
+updateData		KEYWORD2
+clearIC			KEYWORD2
+clearPageIC		KEYWORD2
+readIC			KEYWORD2
+checkAccelerationFlag	KEYWORD2
+#######################################
+# Constants (LITERAL1)
+#######################################
+# Specifies Structures  KEYWORD3
+#######################################

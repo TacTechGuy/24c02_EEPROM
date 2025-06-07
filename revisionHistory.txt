@@ -1,0 +1,27 @@
+  1-25-2023 (COMPLETE) 2-8-2023
+  worked on adding functionality to the 24C02 EEPROM chip, this chip was recovered from a monitor board and then put onto an 8-SOIC breakout board where initial code was created to be able to interface with the chip,
+  once communication was established all of the raw code was converted over to the I2C_MOTORDRIVER.h library file; one of the TMP75 boards was converted to be able to accept the 24C02 chip because the pinout saw 2 pins reversed,
+  the VCC/ VSS had to be disconnected, a hole was drilled to disconnect the VCC but in doing so it disconnected the VCC line to the A0/A1/A2 pins for the address control; the chip ground had to be connected to ground through
+  the use of bridging the capacitor pads by pin 4 location; on the VCC side the chip pin 8 had to be bent upwards so that way it didn't make contact with the board, a separate jumper wire was then connected to this pin and then to
+  one of the open SMD pads of the 5pos female recp; another wire had to connect VCC from pin 8 to the address pins because of the drill hole causing loss of connections between its original track
+  **also had to change the pin declaration for the tempAlert/ was originally INPUT to read if the TMP75 sensors hit a limit but I needed the pin to be able to control the write and read operations of the 24C02
+  ***PIN CHANGED*** - const byte tempAlert = 2 (INPUT)   ***CHANGED TO*** - const uint8_t writeControlPin(OUTPUT)
+
+  2-9-2023
+  testing the ability to read from the EEPROM chip  but first have to read from the motorDriver and then I need to block out that code for the next time and set it to where it reads from the EEPROM chip, anytime i adjust a variable
+  on the motordriver/targetboard and it has an address on the EEPROM im actually sending the value to 2 places so that way when powered down and restarted it will maintain the previous values without having to guess
+  **starting with the delay setting and writing to address 0x10/0x11 because it is a 2 byte value
+
+  2-12-2023 (COMPLETE) 2-16-2023
+  Working on switching motorSpeed, time delay, track ramp down from the motordriver chip to the EEPROM 24c02 IC
+ ** 2-13-2023** have an issue with the eepromDataStorage.readData(uint8_t location) function, if I do this function any other function that i call after will be ignored
+  FIXED PREVIOUS ISSUE: WAS ABLE TO WRITE OWN FUNCTION INSIDE THE MAIN PROGRAM TO WHERE I CALL eepromDataStoage.readData(location) - PUT INTO 2 FOR LOOPS(ONE FOR PAGE CONTROL/NUMBER OF BYTES PER PAGE)
+  DATA READ BACK IS CORRECT PLUS CONSECUTIVE WRITE/ READ OPERATIONS ARE NOT
+  EFFECTED AND ALSO ALLOWING FOR CORRECT DATA RETREVAL FROM SPECIFIED LOCATION ON THE 24C02
+        - SAME SECTION OF CODE; WORKING ON ADDING THE RAMPDOWN TO THE EEPROM; SO WE CAN READ AND UPDATE DIRECTLY FROM IT INSTEAD OF USING THE rampDownBuffer[10]= { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
+
+  2-22-2023 (COMPLETE) 2-22-2023
+  Added the ability to be able to build in a safe guard just incase we cannot connect to the 24C02 EEPROM chip, we will then read from the motorDriver the data that we want but then also use the same
+  variables so that way we aren't conflicting and having to set flags later on in the code (this is all done in the setup portion), unplugging the 24C02 and running the setup function will output values that
+  have been pulled in from the motorDriver and vis-versa if plugged in (24C02 EEPROM IC) and the setup function ran once more the values change to whatever data is being pulled in from the 24C02 in regards
+  to the corresponding data address. (***THIS HAS BEEN TESTED WITH THE 24C02 CONNECTED, THE ONLY OTHER TEST WOULD BE TO UNPLUG AND RUN THROUGH MULTIPLE CYCLES TO MAKE SURE NOTHING HANGS***)
