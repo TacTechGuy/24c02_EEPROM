@@ -21,11 +21,9 @@ class EEPROMic {
 
     void clearPageIC(uint8_t pageStart, uint8_t value);
     
-    uint16_t readIC();
+    void readIC();
 
-
-
-
+    
   private:
     uint8_t _page = 0;
     uint8_t _currentPage;
