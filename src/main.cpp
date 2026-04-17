@@ -1,3 +1,4 @@
+#include "Arduino.h"
 #include <24c02.h>
 
 const uint8_t writeControlPin = 2;
