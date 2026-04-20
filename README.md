@@ -17,12 +17,12 @@
   major revisions, the best option was to do an add-on to the existing board. 
 </p>
 <p align="center">
-  <img src="https://github.com/TacTechGuy/24c02_EEPROM/blob/master/images/24c02_mounted.png?raw=true"/>
+  <img src="./docs/images/24c02_mounted.png"/>
   <br>
   <i>The 24c02 was soldered to a custom 8-SOIC breakout board that was initially designed for a TMP75, which unfortunately was all that I had readily available at the time. Some minor adjustments had to be performed to accommodate the differences between the boards, 
   like drilling the VCC line and jumping ground through the SMD capacitor pads to the solder pads for adjustable pin configuration for I2C addressing.</i><br>
   <br>
-  <img src="https://github.com/TacTechGuy/24c02_EEPROM/blob/master/images/board_topSize.png?raw=true"/><br>  
+  <img src="./docs/images/board_topSize.png"/><br>  
   <i>This picture is for reference only and is used to show the constraints of all of the THT and SMD's that prevented the 24c02 from being mounted on top. However, mounting on bottom allowed for easy soldering to the available pins for 
   I2C, plus the additional write control pin. </i><br>
 </p>

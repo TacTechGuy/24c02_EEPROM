@@ -25,7 +25,8 @@ struct myStorage {
   uint8_t maxPageValue = 16;
   bool read = false;
   uint8_t page = 0;
-} eeprom;
+};
+myStorage eeprom;
 
 //***THIS WILL READ THE ENTIRE CHIP! NEED TO SEE IF I CAN ADD THIS TO THE ACTUAL I2C_MOTORDRIVER LIBRARY***
 //changed from uint8_t to float on the return value to pick up the 0x13 MPH address
