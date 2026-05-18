@@ -13,9 +13,8 @@ uint16_t EEPROMic::receive16bits() {
 
   return (registerBits = MSB << 8 | LSB);
 }
-EEPROMic::EEPROMic(uint8_t address, uint8_t writeControlPin) {
-  _address = address;
-  _writeControlPin = writeControlPin;
+EEPROMic::EEPROMic(uint8_t address, uint8_t writeControlPin): _address(address), _writeControlPin(writeControlPin) {
+
 }
 
 bool EEPROMic::begin(TwoWire &wirePort) {
@@ -65,17 +64,14 @@ float EEPROMic::readData(uint8_t location) {
 }
 
 void EEPROMic::updateData(uint8_t location, float incomingValue) {
-  uint8_t value;
-  uint16_t mphValue;
-  float mphSpeed;
-
-
   //this is the MPH address so if this matches we want to multiply the value by 10
   //added 4-5-2023
 
   //made changes to allow for better accuracy when setting the speed into the eeprom chip
   //
   if (location == 0x13) {
+    float mphSpeed;
+    uint16_t mphValue;
     //need to change this for the added accuracey for the speed adjustment its set to 1/10 of a speed and I'm changing it to 0.5/10
     //value = incomingValue * 10;
     //converts it into an integer number so we can store it
@@ -117,6 +113,7 @@ void EEPROMic::updateData(uint8_t location, float incomingValue) {
     delay(5);
 
   } else {
+    uint8_t value;
     value = incomingValue;
 
     _i2cPort->beginTransmission(_address);

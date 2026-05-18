@@ -26,14 +26,15 @@ class EEPROMic {
     
   private:
     uint8_t _page = 0;
-    uint8_t _currentPage;
+    uint8_t _currentPage = 0; 
     uint8_t _previousPage = 0;
     uint8_t _maxPageLoad = 16;
-    uint16_t _incomingBuffer[255];
-
+    uint16_t _incomingBuffer[255] = {0};
+  
     uint8_t _address;
     uint8_t _writeControlPin;
-    TwoWire *_i2cPort;
+    TwoWire *_i2cPort = nullptr;
+    
     uint16_t receive16bits ();
 
 };
