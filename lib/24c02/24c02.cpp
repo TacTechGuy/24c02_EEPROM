@@ -82,6 +82,8 @@ void EEPROMic::updateData(uint8_t location, float incomingValue) {
   if (location == 0x13) {
     float mphSpeed;
     uint16_t mphValue;
+    float mphSpeed;
+    uint16_t mphValue;
     //need to change this for the added accuracey for the speed adjustment its set to 1/10 of a speed and I'm changing it to 0.5/10
     //value = incomingValue * 10;
     //converts it into an integer number so we can store it
@@ -123,6 +125,7 @@ void EEPROMic::updateData(uint8_t location, float incomingValue) {
     delay(5);
 
   } else {
+    uint8_t value;
     uint8_t value;
     value = incomingValue;
 
