@@ -1,5 +1,8 @@
 #include "Arduino.h"
-#include <24c02.h>
+#include "24c02.h"
+#include <Wire.h>
+
+#define SUCCESS 0
 
 #if defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_STM32)
   #define DEBUG_SERIAL SerialUSB
@@ -7,7 +10,7 @@
   #define DEBUG_SERIAL Serial
 #endif
 
-const uint8_t writeControlPin = 2;
+const uint8_t writeControlPin = 4;
 const uint8_t I2Caddress = 0x51;
 // Address range from 0x50 --> 0x57 (1010 +[A2]+[A1]+[A0])
 //                                   1010   0    0    1
@@ -16,72 +19,42 @@ const uint8_t I2Caddress = 0x51;
 // used to setup connection to the EEPROM IC
 EEPROMic eepromDataStorage(I2Caddress, writeControlPin);
 
+// Global Variables For Testing
 uint8_t distance = 0;
-
-struct myStorage {
-  float incomingData[255];
-  uint8_t currentPage;
-  uint8_t previousPage = 0;
-  uint8_t maxPageValue = 16;
-  bool read = false;
-  uint8_t page = 0;
-};
-myStorage eeprom;
-
-//***THIS WILL READ THE ENTIRE CHIP! NEED TO SEE IF I CAN ADD THIS TO THE ACTUAL I2C_MOTORDRIVER LIBRARY***
-//changed from uint8_t to float on the return value to pick up the 0x13 MPH address
-// changed 4-5-2023
-
-void checkEEPROM() {
-  
-
-  if (eeprom.read) {
-    for (eeprom.currentPage = eeprom.previousPage; eeprom.currentPage < eeprom.maxPageValue; eeprom.currentPage++) {
-
-      eeprom.page++;
-      DEBUG_SERIAL.print("page number: ");
-      DEBUG_SERIAL.println(eeprom.page);
-      //DEBUG_SERIAL.println(eeprom.currentPage);
-      for (uint8_t i = 0; i < 16; i++) {
-        eeprom.incomingData[i + (16 * eeprom.currentPage)] = eepromDataStorage.readData(i + (16 * eeprom.currentPage));
-        DEBUG_SERIAL.print("address location: ");
-        DEBUG_SERIAL.print(i + (16 * eeprom.currentPage), HEX);
-        DEBUG_SERIAL.print(" data read: ");
-        DEBUG_SERIAL.println(eeprom.incomingData[i + (16 * eeprom.currentPage)]);
-      }
-      if (eeprom.page > 15) {
-        eeprom.currentPage = 0;
-        eeprom.page = 0;
-        eeprom.read = false;
-        break;
-      }
-    }
-  }
-}
-
+uint8_t buf[20] = {0};
 
 void setup() {
+  Wire.begin();
+  DEBUG_SERIAL.begin(9600);
 
-  if (!eepromDataStorage.begin()) {
+  while (!DEBUG_SERIAL){
+    ;
+  }
+  
+  // Establish Connection
+  if (eepromDataStorage.begin() != SUCCESS) {
     DEBUG_SERIAL.println("we have a problem connecting to the 24C02 EEPROM IC!");
   } else {
     DEBUG_SERIAL.println("we are connected to the 24C02 EEPROM IC!");
-    //set the flag so we can read from the EEPROM
-    eeprom.read = true;
   }
 
 
-
-
   // read data from a location on the eeprom
-  distance = eepromDataStorage.readData(0x13);
+  distance = eepromDataStorage.readData(0x03);
+
+  snprintf((char*)buf,sizeof(buf), "Distance:%d \n\r", distance);
+
+  DEBUG_SERIAL.println((char*)buf);
 
   // Used to update the data at a location, it first checks the data and then replaces it if its new
-  eepromDataStorage.updateData(0x12, 15);
+  //eepromDataStorage.updateData(0x03, 17);
 
 
   // Print out the entire contents of the EEPROM
-  checkEEPROM();
+  eepromDataStorage.readIC();
+
+  // Clear the EEPROM with [value = 0] if not specified
+  eepromDataStorage.clearIC();
 }
 
 void loop() {

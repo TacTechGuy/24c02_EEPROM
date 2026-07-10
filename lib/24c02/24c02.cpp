@@ -13,69 +13,75 @@ uint16_t EEPROMic::receive16bits() {
 
   return (registerBits = MSB << 8 | LSB);
 }
-EEPROMic::EEPROMic(uint8_t address, uint8_t writeControlPin) {
-  _address = address;
-  _writeControlPin = writeControlPin;
+EEPROMic::EEPROMic(uint8_t address, uint8_t writeControlPin): _address(address), _writeControlPin(writeControlPin) {
+  //Set the pin direction
+  pinMode(_writeControlPin, OUTPUT);
+  digitalWrite(_writeControlPin, HIGH);
 }
-
-bool EEPROMic::begin(TwoWire &wirePort) {
+// Return Error Code
+uint8_t EEPROMic::begin(TwoWire &wirePort) {
 
   _i2cPort = &wirePort;
 
   _i2cPort->beginTransmission(_address);
   uint8_t _ret = _i2cPort->endTransmission();
   if (!_ret)
-    return true;
+    // set the flag
+    eepromStatus = status::SUCCESS;
   else
-    return false;
+    eepromStatus = status::CONNECTION_ERROR;
+  
+  return (uint8_t)eepromStatus;
 }
 //changed from uint8_t to float so I dont have to do anything on the front end as far as converting goes
 //changed 4-5-2023
-float EEPROMic::readData(uint8_t location) {
+uint8_t EEPROMic::readData(uint8_t location) {
+  uint8_t registerValue = 0;
 
   _i2cPort->beginTransmission(_address);
   _i2cPort->write(location);
   _i2cPort->endTransmission();
 
   delay(5);
+  _i2cPort->requestFrom(_address, (uint8_t)1);
+  registerValue = _i2cPort->read();
+  return registerValue;
 
-  if (location == 0x13) {
+  // if (location == 0x13) {
 
-    _i2cPort->requestFrom(_address, (uint8_t)2);
-    float registerValue;
-    uint8_t MSB;
-    uint8_t LSB;
-    MSB = _i2cPort->read();
-    LSB = _i2cPort->read();
-    //DEGUB_SERIAL.print("MSB: ");
-    //DEBUG_SERIAL.println(MSB);
-    //DEBUG_SERIAL.print("LSB: ");
-    //DEBUG_SERIAL.println(LSB);
-    registerValue = MSB << 8 | LSB;
-    registerValue = (float)registerValue / 100.0;
-    //DEBUG_SERIAL.print("registerValue: ");
-    //DEBUG_SERIAL.println(registerValue);
-    return registerValue;
-  } else {
-    _i2cPort->requestFrom(_address, (uint8_t)1);
-    float registerValue;
-    registerValue = _i2cPort->read();
-    return registerValue;
-  }
+  //   _i2cPort->requestFrom(_address, (uint8_t)2);
+  //   float registerValue;
+  //   uint8_t MSB;
+  //   uint8_t LSB;
+  //   MSB = _i2cPort->read();
+  //   LSB = _i2cPort->read();
+  //   //DEGUB_SERIAL.print("MSB: ");
+  //   //DEBUG_SERIAL.println(MSB);
+  //   //DEBUG_SERIAL.print("LSB: ");
+  //   //DEBUG_SERIAL.println(LSB);
+  //   registerValue = MSB << 8 | LSB;
+  //   registerValue = (float)registerValue / 100.0;
+  //   //DEBUG_SERIAL.print("registerValue: ");
+  //   //DEBUG_SERIAL.println(registerValue);
+  //   return registerValue;
+  // } else {
+  //   _i2cPort->requestFrom(_address, (uint8_t)1);
+  //   float registerValue;
+  //   registerValue = _i2cPort->read();
+  //   return registerValue;
+  // }
 }
 
 void EEPROMic::updateData(uint8_t location, float incomingValue) {
-  uint8_t value;
-  uint16_t mphValue;
-  float mphSpeed;
-
-
   //this is the MPH address so if this matches we want to multiply the value by 10
   //added 4-5-2023
 
   //made changes to allow for better accuracy when setting the speed into the eeprom chip
+  digitalWrite(_writeControlPin, LOW);
   //
   if (location == 0x13) {
+    float mphSpeed;
+    uint16_t mphValue;
     //need to change this for the added accuracey for the speed adjustment its set to 1/10 of a speed and I'm changing it to 0.5/10
     //value = incomingValue * 10;
     //converts it into an integer number so we can store it
@@ -106,17 +112,18 @@ void EEPROMic::updateData(uint8_t location, float incomingValue) {
     //we are goning to request info from the address locations before we write to it, only change the address value if it doesnt match the incoming value
     if (registerValue != mphValue) {
       //enable the chip to where we can write to it
-      digitalWrite(_writeControlPin, LOW);
+      //digitalWrite(_writeControlPin, LOW);
       _i2cPort->beginTransmission(_address);
       _i2cPort->write(location);
       _i2cPort->write(mphValue >> 8 & 0xFF);
       _i2cPort->write(mphValue & 0xFF);
       _i2cPort->endTransmission();
     }
-    digitalWrite(_writeControlPin, HIGH);
+    //digitalWrite(_writeControlPin, HIGH);
     delay(5);
 
   } else {
+    uint8_t value;
     value = incomingValue;
 
     _i2cPort->beginTransmission(_address);
@@ -132,7 +139,7 @@ void EEPROMic::updateData(uint8_t location, float incomingValue) {
     //here we are checking the incoming value with the once from the address location
     if (registerValue != value) {
       //enable the chip to where we can write to it
-      digitalWrite(_writeControlPin, LOW);
+      //digitalWrite(_writeControlPin, LOW);
       _i2cPort->beginTransmission(_address);
       _i2cPort->write(location);
       _i2cPort->write(value);
@@ -142,6 +149,7 @@ void EEPROMic::updateData(uint8_t location, float incomingValue) {
     delay(5);
   }
 }
+// Return an error from enum 
 void EEPROMic::clearPageIC(uint8_t pageStart, uint8_t value) {
   delay(5);
   uint8_t pageStartAddress = 0xff;
@@ -177,7 +185,7 @@ void EEPROMic::clearPageIC(uint8_t pageStart, uint8_t value) {
 }
 
 void EEPROMic::clearIC(uint8_t value) {
-  for (uint8_t pageCounter = 1; pageCounter < 17; pageCounter++) {
+  for (uint8_t pageCounter = 0; pageCounter < 16; pageCounter++) {
     delay(5);
     for (uint8_t byteCounter = 0; byteCounter < 16; byteCounter++) {
       clearPageIC(pageCounter, value);
@@ -186,21 +194,18 @@ void EEPROMic::clearIC(uint8_t value) {
 }
 
 void EEPROMic::readIC() {
-  for (_currentPage = _previousPage; _currentPage < _maxPageLoad; _currentPage++) {
-
-    _page++;
-    //DEBUG_SERIAL.print("page number: ");
-    //DEBUG_SERIAL.println(eeprom.page);
-    //DEBUG_SERIAL.println(eeprom.currentPage);
-    for (uint8_t i = 0; i < 16; i++) {
-      _incomingBuffer[i + (16 * _currentPage)] = readData(i + (16 * _currentPage));
-      //      DEBUG_SERIAL.print("address location: ");
-      //      DEBUG_SERIAL.print(i + (16 * _currentPage), HEX);
-      //      DEBUG_SERIAL.print(" data read: ");
-      //      DEBUG_SERIAL.println(_incomingBuffer[i + (16 * _currentPage)]);
-    }
-    if (_page > 15) {
-      break;
+  if (eepromStatus == status::SUCCESS) {
+    for (_eeprom.currentPage = _eeprom.previousPage; _eeprom.currentPage < _eeprom.MAX_PAGE; _eeprom.currentPage++) {
+      DEBUG_SERIAL.print("page number: ");
+      DEBUG_SERIAL.println(_eeprom.page);
+      for (uint8_t i = 0; i < _eeprom.MAX_PAGE; i++) {
+        _eeprom.incomingData[i + (_eeprom.MAX_PAGE * _eeprom.currentPage)] = readData(i + (_eeprom.MAX_PAGE * _eeprom.currentPage));
+        DEBUG_SERIAL.print("address location: ");
+        DEBUG_SERIAL.print(i + (_eeprom.MAX_PAGE * _eeprom.currentPage), HEX);
+        DEBUG_SERIAL.print(" data read: ");
+        DEBUG_SERIAL.println(_eeprom.incomingData[i + (_eeprom.MAX_PAGE * _eeprom.currentPage)]);
+      }
+      _eeprom.page++;
     }
   }
 }
