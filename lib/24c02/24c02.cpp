@@ -20,17 +20,16 @@ EEPROMic::EEPROMic(uint8_t address, uint8_t writeControlPin): _address(address),
 }
 // Return Error Code
 uint8_t EEPROMic::begin(TwoWire &wirePort) {
-
   _i2cPort = &wirePort;
 
   _i2cPort->beginTransmission(_address);
   uint8_t _ret = _i2cPort->endTransmission();
-  if (!_ret)
-    // set the flag
-    eepromStatus = status::SUCCESS;
-  else
-    eepromStatus = status::CONNECTION_ERROR;
-  
+    if (!_ret){
+      // set the flag
+      eepromStatus = status::SUCCESS;
+    }else{
+      eepromStatus = status::CONNECTION_ERROR;
+    }
   return (uint8_t)eepromStatus;
 }
 //changed from uint8_t to float so I dont have to do anything on the front end as far as converting goes
@@ -42,9 +41,12 @@ uint8_t EEPROMic::readData(uint8_t location) {
   _i2cPort->write(location);
   _i2cPort->endTransmission();
 
-  delay(5);
   _i2cPort->requestFrom(_address, (uint8_t)1);
-  registerValue = _i2cPort->read();
+
+  if (_i2cPort->available()){
+   registerValue = _i2cPort->read();
+  }
+ 
   return registerValue;
 
   // if (location == 0x13) {
@@ -80,8 +82,6 @@ void EEPROMic::updateData(uint8_t location, float incomingValue) {
   digitalWrite(_writeControlPin, LOW);
   //
   if (location == 0x13) {
-    float mphSpeed;
-    uint16_t mphValue;
     float mphSpeed;
     uint16_t mphValue;
     //need to change this for the added accuracey for the speed adjustment its set to 1/10 of a speed and I'm changing it to 0.5/10
@@ -126,7 +126,6 @@ void EEPROMic::updateData(uint8_t location, float incomingValue) {
 
   } else {
     uint8_t value;
-    uint8_t value;
     value = incomingValue;
 
     _i2cPort->beginTransmission(_address);
@@ -153,38 +152,51 @@ void EEPROMic::updateData(uint8_t location, float incomingValue) {
   }
 }
 // Return an error from enum 
-void EEPROMic::clearPageIC(uint8_t pageStart, uint8_t value) {
-  delay(5);
-  uint8_t pageStartAddress = 0xff;
-  digitalWrite(_writeControlPin, LOW);
+uint8_t EEPROMic::clearPageIC(uint8_t pageStart, uint8_t value) {
+  // Verify Status/Error first
+  // Verify pageStart within range 1-16, value 0 - 255 and ensure EEPROM initalization
+   if ((eepromStatus == status::SUCCESS) && (eepromError == status::STANDBY)){
+      if ((pageStart >=0 && pageStart <= 15) && (value >= 0 && value <= 255)){
 
-  switch (pageStart) {
+      delay(5);
+      uint8_t pageStartAddress = 0;
+      digitalWrite(_writeControlPin, LOW);
 
-    case 1: pageStartAddress = 0x00; break;
-    case 2: pageStartAddress = 0x10; break;
-    case 3: pageStartAddress = 0x20; break;
-    case 4: pageStartAddress = 0x30; break;
-    case 5: pageStartAddress = 0x40; break;
-    case 6: pageStartAddress = 0x50; break;
-    case 7: pageStartAddress = 0x60; break;
-    case 8: pageStartAddress = 0x70; break;
-    case 9: pageStartAddress = 0x80; break;
-    case 10: pageStartAddress = 0x90; break;
-    case 11: pageStartAddress = 0xA0; break;
-    case 12: pageStartAddress = 0xB0; break;
-    case 13: pageStartAddress = 0xC0; break;
-    case 14: pageStartAddress = 0xD0; break;
-    case 15: pageStartAddress = 0xE0; break;
-    case 16: pageStartAddress = 0xF0; break;
+      switch (pageStart) {
+        case 0: pageStartAddress = 0x00; break;
+        case 1: pageStartAddress = 0x10; break;
+        case 2: pageStartAddress = 0x20; break;
+        case 3: pageStartAddress = 0x30; break;
+        case 4: pageStartAddress = 0x40; break;
+        case 5: pageStartAddress = 0x50; break;
+        case 6: pageStartAddress = 0x60; break;
+        case 7: pageStartAddress = 0x70; break;
+        case 8: pageStartAddress = 0x80; break;
+        case 9: pageStartAddress = 0x90; break;
+        case 10: pageStartAddress = 0xA0; break;
+        case 11: pageStartAddress = 0xB0; break;
+        case 12: pageStartAddress = 0xC0; break;
+        case 13: pageStartAddress = 0xD0; break;
+        case 14: pageStartAddress = 0xE0; break;
+        case 15: pageStartAddress = 0xF0; break;
+      }
+      _i2cPort->beginTransmission(_address);
+      _i2cPort->write(pageStartAddress);
+      for (uint8_t i = 0; i < 16; i++) {
+        _i2cPort->write(value);
+      }
+      _i2cPort->endTransmission();
+
+      return (uint8_t) eepromStatus;
+        // Return OUT_OF_BOUNDS enum
+    }else{
+        eepromError = status::OUT_OF_BOUNDS;
+        return (uint8_t)eepromError;
+        }
+  // Pack the Status/Error 
+  }else{
+   return ((uint8_t)eepromStatus << 4) | (uint8_t) eepromError;
   }
-  _i2cPort->beginTransmission(_address);
-  _i2cPort->write(pageStartAddress);
-  for (int i = 0; i < 16; i++) {
-    //if (clearPage == 1) {
-    _i2cPort->write(value);
-    //DEBUG_SERIAL.println("clearing chip");
-  }
-  _i2cPort->endTransmission();
 }
 
 void EEPROMic::clearIC(uint8_t value) {
@@ -198,17 +210,46 @@ void EEPROMic::clearIC(uint8_t value) {
 
 void EEPROMic::readIC() {
   if (eepromStatus == status::SUCCESS) {
-    for (_eeprom.currentPage = _eeprom.previousPage; _eeprom.currentPage < _eeprom.MAX_PAGE; _eeprom.currentPage++) {
-      DEBUG_SERIAL.print("page number: ");
-      DEBUG_SERIAL.println(_eeprom.page);
-      for (uint8_t i = 0; i < _eeprom.MAX_PAGE; i++) {
-        _eeprom.incomingData[i + (_eeprom.MAX_PAGE * _eeprom.currentPage)] = readData(i + (_eeprom.MAX_PAGE * _eeprom.currentPage));
-        DEBUG_SERIAL.print("address location: ");
-        DEBUG_SERIAL.print(i + (_eeprom.MAX_PAGE * _eeprom.currentPage), HEX);
-        DEBUG_SERIAL.print(" data read: ");
-        DEBUG_SERIAL.println(_eeprom.incomingData[i + (_eeprom.MAX_PAGE * _eeprom.currentPage)]);
+
+      //static bool timerReset = false;
+      
+      if (!_timeReset){
+        _previousTime = millis();
+        DEBUG_SERIAL.println("inside the initalize time");
+        _timeReset = true;
       }
-      _eeprom.page++;
+
+      // if (timerReset && !_timeControl){
+      //   DEBUG_SERIAL.println("hi there from the timerReset block");
+      //   _timeControl = true;
+      // }
+
+    while (_timeReset){
+        if (((millis() - _previousTime) >= _interval) && (!_eeprom.read_write)){
+        _previousTime = millis();
+        _eeprom.read_write = true;
+        DEBUG_SERIAL.println("reset the timer");
+      }
+        if (_eeprom.read_write){
+            for (_eeprom.currentPage = _eeprom.previousPage; _eeprom.currentPage < _eeprom.MAX_PAGE; _eeprom.currentPage++) {
+                DEBUG_SERIAL.print("page number: ");
+                DEBUG_SERIAL.println(_eeprom.page);
+                for (uint8_t i = 0; i < _eeprom.MAX_PAGE; i++) {
+                  _eeprom.incomingData[i + (_eeprom.MAX_PAGE * _eeprom.currentPage)] = readData(i + (_eeprom.MAX_PAGE * _eeprom.currentPage));
+                  DEBUG_SERIAL.print("address location: ");
+                  DEBUG_SERIAL.print(i + (_eeprom.MAX_PAGE * _eeprom.currentPage), HEX);
+                  DEBUG_SERIAL.print(" data read: ");
+                  DEBUG_SERIAL.println(_eeprom.incomingData[i + (_eeprom.MAX_PAGE * _eeprom.currentPage)]);
+                }
+                _eeprom.page++;
+              }
+              // RESET Variables/ Flag
+              _eeprom.page = 0;
+              _eeprom.previousPage = 0;
+              _timeReset = false;
+             //timerReset = false;
+          }
+          _eeprom.read_write = false;
     }
   }
 }
