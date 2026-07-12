@@ -23,7 +23,7 @@ class EEPROMic {
 
     void clearIC(uint8_t value= ZERO);
 
-    void clearPageIC(uint8_t pageStart, uint8_t value);
+    uint8_t clearPageIC(uint8_t pageStart, uint8_t value);
     
     void readIC(void);
 
@@ -34,27 +34,28 @@ class EEPROMic {
     enum class status: uint8_t{
       SUCCESS = 0,
       CONNECTION_ERROR = 1,
-      INVALID_LOCATION,
+      INVALID_LOCATION = 2,
+      OUT_OF_BOUNDS = 3,
       STANDBY = 0xFF,
     };
-    status eepromStatus = status::STANDBY;
+    status eepromStatus = status::STANDBY;    // Initalization
+    status eepromError = status::STANDBY;     // Return Error Code  
 
     struct myStorage {
-    uint8_t incomingData[256];
-    uint8_t currentPage;
+    uint8_t incomingData[256] = {0};
+    uint8_t currentPage = 0;
     uint8_t previousPage = 0;
     const uint8_t MAX_PAGE = 16;
     uint8_t page = 0;
-    bool read = false;
+    bool read_write = false;
   };
   myStorage _eeprom;
-
-    uint8_t _page = 0;
-    uint8_t _currentPage = 0; 
-    uint8_t _previousPage = 0;
-    uint8_t _maxPageLoad = 16;
-    uint16_t _incomingBuffer[255] = {0};
   
+    // Used to handle Non-blocking timer
+    unsigned long _previousTime = 0;
+    uint8_t _interval = 10;
+    bool _timeReset = false;
+
     uint8_t _address;
     uint8_t _writeControlPin;
     TwoWire *_i2cPort = nullptr;

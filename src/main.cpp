@@ -23,6 +23,7 @@ EEPROMic eepromDataStorage(I2Caddress, writeControlPin);
 uint8_t distance = 0;
 uint8_t buf[20] = {0};
 
+bool runOnce = true;
 void setup() {
   Wire.begin();
   DEBUG_SERIAL.begin(9600);
@@ -53,10 +54,21 @@ void setup() {
   // Print out the entire contents of the EEPROM
   eepromDataStorage.readIC();
 
+  //delay(10);
   // Clear the EEPROM with [value = 0] if not specified
-  eepromDataStorage.clearIC();
+  //eepromDataStorage.clearIC(0);
+  //eepromDataStorage.clearPageIC(1,10);
+  //delay(10);
+  //eepromDataStorage.clearPageIC(14,125);
+  //delay(10);
+
+  eepromDataStorage.readIC();
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
+  if (runOnce){
+    eepromDataStorage.readIC();
+    runOnce = false;
+  }
 }
