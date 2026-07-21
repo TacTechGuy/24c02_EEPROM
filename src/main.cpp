@@ -10,6 +10,8 @@
   #define DEBUG_SERIAL Serial
 #endif
 
+#ifndef UNIT_TEST
+
 const uint8_t writeControlPin = 4;
 const uint8_t I2Caddress = 0x51;
 // Address range from 0x50 --> 0x57 (1010 +[A2]+[A1]+[A0])
@@ -72,3 +74,5 @@ void loop() {
     runOnce = false;
   }
 }
+
+#endif
