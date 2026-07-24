@@ -44,19 +44,14 @@ void test_intial_connection(void){
 
 // Need to test register write/read
 void test_write_read(void) {
-    
+
     TEST_ASSERT_EQUAL_INT(1, 1);
 }
 
 // Test to check clearIC
 void test_clearIC(void) {
-    eepromDataStorage.clearIC(0);
-
     
-    eepromDataStorage.readIC();
-    
-
-
+    TEST_ASSERT_EQUAL_INT_MESSAGE(0, eepromDataStorage.getEepromStatus(), "Error clearing IC");
 }
 
 void setup() {
@@ -66,6 +61,7 @@ void setup() {
     // Unity's macros will call unityOutputStart() right here behind the scenes
     UNITY_BEGIN();
     RUN_TEST(test_intial_connection);
+    RUN_TEST(test_clearIC);
     UNITY_END();
 }
 

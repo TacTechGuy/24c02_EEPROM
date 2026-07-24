@@ -54,7 +54,7 @@ void setup() {
 
 
   // Print out the entire contents of the EEPROM
-  eepromDataStorage.readIC();
+  //eepromDataStorage.readIC();
 
   //delay(10);
   // Clear the EEPROM with [value = 0] if not specified
@@ -64,15 +64,14 @@ void setup() {
   //eepromDataStorage.clearPageIC(14,125);
   //delay(10);
 
-  eepromDataStorage.readIC();
+  //eepromDataStorage.readIC();
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-  if (runOnce){
-    eepromDataStorage.readIC();
-    runOnce = false;
-  }
+  eepromDataStorage.stateMachine();
+  
+  
 }
 
 #endif
