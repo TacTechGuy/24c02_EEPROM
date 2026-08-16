@@ -26,9 +26,9 @@ uint8_t EEPROMic::begin(TwoWire &wirePort) {
   uint8_t _ret = _i2cPort->endTransmission();
     if (!_ret){
       // set the flag
-      stateController = State::TIMER_INIT;    //TEST
-      currentCommand = Command::READ_IC;      //TEST
+      stateController = State::IDLE;    
       eepromStatus = Status::SUCCESS;
+      return 0;
     }else{
       eepromStatus = Status::CONNECTION_ERROR;
     }
@@ -140,10 +140,8 @@ void EEPROMic::updateData(uint8_t location, float incomingValue) {
     uint8_t registerValue;
     registerValue = _i2cPort->read();
 
-    //here we are checking the incoming value with the once from the address location
+    //here we are checking the incoming value with the ones from the address location
     if (registerValue != value) {
-      //enable the chip to where we can write to it
-      //digitalWrite(_writeControlPin, LOW);
       _i2cPort->beginTransmission(_address);
       _i2cPort->write(location);
       _i2cPort->write(value);
@@ -216,23 +214,28 @@ void EEPROMic::clearIC(uint8_t value) {
 
 }
 
-void EEPROMic::readIC() {
+void EEPROMic::_readIC() {
   if (eepromStatus == Status::SUCCESS) {
-    
+
       for (_eeprom.currentPage = _eeprom.previousPage; _eeprom.currentPage < _eeprom.MAX_PAGE; _eeprom.currentPage++) {
           DEBUG_SERIAL.print("page number: ");
-          DEBUG_SERIAL.println(_eeprom.page);
+          DEBUG_SERIAL.println(_eeprom.currentPage);
           for (uint8_t i = 0; i < _eeprom.MAX_PAGE; i++) {
             _eeprom.incomingData[i + (_eeprom.MAX_PAGE * _eeprom.currentPage)] = readData(i + (_eeprom.MAX_PAGE * _eeprom.currentPage));
             DEBUG_SERIAL.print("address location: ");
             DEBUG_SERIAL.print(i + (_eeprom.MAX_PAGE * _eeprom.currentPage), HEX);
             DEBUG_SERIAL.print(" data read: ");
             DEBUG_SERIAL.println(_eeprom.incomingData[i + (_eeprom.MAX_PAGE * _eeprom.currentPage)]);
+            // Used for wear leveling
+            if (i == (_eeprom.MAX_PAGE - 1)){
+              DEBUG_SERIAL.print("last location: ");
+              DEBUG_SERIAL.print(i + (_eeprom.MAX_PAGE * _eeprom.currentPage), HEX);
+              DEBUG_SERIAL.print(" Location value: ");
+              DEBUG_SERIAL.println(_eeprom.incomingData[i + (_eeprom.MAX_PAGE * _eeprom.currentPage)], BIN);
+            }
+            
           }
-          _eeprom.page++;
         }
-        // RESET Variables/ Flag
-        _eeprom.page = 0;
         _eeprom.previousPage = 0;
   }
 }
@@ -240,6 +243,11 @@ void EEPROMic::readIC() {
 EEPROMic::Status EEPROMic::getEepromStatus(){
   return eepromStatus;
 }
+
+EEPROMic::State EEPROMic::getTimerState(){
+  return stateController; 
+}
+
 
 // Handle non-blocking timer
 void EEPROMic::stateMachine(){
@@ -263,19 +271,33 @@ void EEPROMic::stateMachine(){
     {
     case Command::CLEAR_IC: break;
     case Command::WRITE_IC: break;
-    case Command::READ_IC: readIC(); break;
-    case Command::STANDBY:  break;
+    case Command::READ_IC: {_readIC();
+
+      // Control when we have reached the last page
+      if (_eeprom.currentPage == _eeprom.MAX_PAGE){
+        currentCommand = Command::STANDBY;
+        DEBUG_SERIAL.println("command standby");
+      }
+      break;
+    }
+    case Command::STANDBY: DEBUG_SERIAL.println("STANDBY MODE"); break;
     default:
       break;
     }
 
     DEBUG_SERIAL.println("State reset back to idle ");
     stateController = State::IDLE;
-    currentCommand = Command::STANDBY;
     }
     break;
   }
   default:
     break;
   }
+}
+
+
+void EEPROMic::requestRead(){
+  // Set the command to initalize the timer
+  stateController = State::TIMER_INIT;
+  currentCommand = Command::READ_IC;
 }

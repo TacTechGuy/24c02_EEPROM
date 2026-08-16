@@ -26,6 +26,7 @@ uint8_t distance = 0;
 uint8_t buf[20] = {0};
 
 bool runOnce = true;
+uint8_t count = 0;
 void setup() {
   Wire.begin();
   DEBUG_SERIAL.begin(9600);
@@ -71,6 +72,19 @@ void loop() {
   // put your main code here, to run repeatedly:
   eepromDataStorage.stateMachine();
   
+  // Trip the internal state machine -> print EEPROM locations x2
+  if (runOnce){
+    // IDLE = 0
+    if (((uint8_t)eepromDataStorage.getTimerState()) == 0){
+      count +=1;
+      eepromDataStorage.requestRead();
+    }
+    
+    if (count == 2){
+      runOnce = false;
+    }
+    
+  }
   
 }
 

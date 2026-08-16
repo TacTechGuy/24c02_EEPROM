@@ -45,7 +45,6 @@ class EEPROMic {
     uint8_t currentPage = 0;
     uint8_t previousPage = 0;
     const uint8_t MAX_PAGE = 16;
-    uint8_t page = 0;
     bool read = false;
   };
   myStorage _eeprom;
@@ -60,7 +59,7 @@ class EEPROMic {
     TwoWire *_i2cPort = nullptr;
     
     uint16_t receive16bits ();
-   
+    void _readIC(void);
 
   public:
     //this sets the address for the target board
@@ -78,8 +77,10 @@ class EEPROMic {
     uint8_t clearPageIC(uint8_t pageStart, uint8_t value);
 
     Status getEepromStatus();
+
+    State getTimerState();
     
-    void readIC(void);
+    void requestRead();
     
     void stateMachine();
 };

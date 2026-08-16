@@ -37,7 +37,12 @@ void tearDown(void) {}
 
 // test initial connection
 void test_intial_connection(void){
-    uint8_t success = eepromDataStorage.begin();
+    uint8_t success = 0xFF;
+    success = eepromDataStorage.begin();
+    char buf[10] = {0};
+    itoa(success, buf, 10);
+
+    TEST_MESSAGE(buf);
 
     TEST_ASSERT_EQUAL_INT_MESSAGE(0,success, "Sensor: No ACK for the I2C");
 }
@@ -56,6 +61,7 @@ void test_clearIC(void) {
 
 void setup() {
     Wire.begin();
+    Wire.setTimeout(25000);
     delay(1000);
 
     // Unity's macros will call unityOutputStart() right here behind the scenes
