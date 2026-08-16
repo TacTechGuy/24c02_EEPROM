@@ -10,6 +10,8 @@
   #define DEBUG_SERIAL Serial
 #endif
 
+#ifndef UNIT_TEST
+
 const uint8_t writeControlPin = 4;
 const uint8_t I2Caddress = 0x51;
 // Address range from 0x50 --> 0x57 (1010 +[A2]+[A1]+[A0])
@@ -24,6 +26,7 @@ uint8_t distance = 0;
 uint8_t buf[20] = {0};
 
 bool runOnce = true;
+uint8_t count = 0;
 void setup() {
   Wire.begin();
   DEBUG_SERIAL.begin(9600);
@@ -52,7 +55,7 @@ void setup() {
 
 
   // Print out the entire contents of the EEPROM
-  eepromDataStorage.readIC();
+  //eepromDataStorage.readIC();
 
   //delay(10);
   // Clear the EEPROM with [value = 0] if not specified
@@ -62,13 +65,27 @@ void setup() {
   //eepromDataStorage.clearPageIC(14,125);
   //delay(10);
 
-  eepromDataStorage.readIC();
+  //eepromDataStorage.readIC();
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
+  eepromDataStorage.stateMachine();
+  
+  // Trip the internal state machine -> print EEPROM locations x2
   if (runOnce){
-    eepromDataStorage.readIC();
-    runOnce = false;
+    // IDLE = 0
+    if (((uint8_t)eepromDataStorage.getTimerState()) == 0){
+      count +=1;
+      eepromDataStorage.requestRead();
+    }
+    
+    if (count == 2){
+      runOnce = false;
+    }
+    
   }
+  
 }
+
+#endif
